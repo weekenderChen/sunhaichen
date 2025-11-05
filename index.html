@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>刮刮乐彩票</title>
+  <!-- Tailwind CSS v3 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 移除Font Awesome依赖，使用纯文本替代图标 -->
+  <!-- 引入配置文件 -->
+  <script src="config.js"></script>
+  
+  <!-- 配置Tailwind自定义颜色和字体 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#FF6B6B',
+            secondary: '#4ECDC4',
+            accent: '#FFD166',
+            dark: '#292F36',
+            light: '#F7FFF7'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- 自定义工具类 -->
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .lottery-shadow {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+      }
+      .scratch-card {
+        -webkit-tap-highlight-color: transparent;
+        touch-action: none;
+      }
+      .swiper-wrapper {
+        transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+    }
+  </style>
+  
+  <style>
+    /* 全局样式 */
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    
+    /* 刮刮卡样式 */
+    .scratch-area {
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+      overflow: hidden;
+    }
+    
+    .scratch-cover {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, #d1d5db, #9ca3af);
+      border-radius: 0.5rem;
+      transition: opacity 0.3s ease;
+      mix-blend-mode: multiply;
+    }
+    
+    .result-area {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* 滑动容器样式 */
+    .swiper-container {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .swiper-wrapper {
+      display: flex;
+      transition: transform 0.5s ease;
+      height: 100%;
+    }
+    
+    .swiper-slide {
+      flex: 0 0 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* 指示器样式 */
+    .indicator {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.5);
+      transition: all 0.3s ease;
+    }
+    
+    .indicator.active {
+      background-color: white;
+      width: 2rem;
+      border-radius: 0.5rem;
+    }
+    
+    /* 二维码遮罩动画 */
+    .qrcode-overlay {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+    
+    .qrcode-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    /* 按钮动画 */
+    .btn-hover-effect {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .btn-hover-effect:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-purple-600 to-blue-500 min-h-screen flex flex-col items-center justify-start pt-8 pb-16 px-4">
+  
+  <!-- 头部标题 -->
+  <header class="w-full max-w-md text-center mb-8">
+    <h1 class="text-[clamp(2rem,5vw,2.5rem)] font-bold text-white drop-shadow-lg">幸运刮刮乐</h1>
+    <p class="text-white/80 mt-2">刮开涂层赢大奖！</p>
+  </header>
+  
+  <!-- 滑动容器 -->
+  <div class="swiper-container w-full max-w-md h-[60vh] mb-6">
+    <div class="swiper-wrapper">
+      <!-- 彩票1 -->
+      <div class="swiper-slide px-4">
+        <div class="w-full h-full flex flex-col">
+          <!-- 彩票标题 -->
+          <div class="text-center mb-4">
+            <h2 class="text-white text-xl font-bold">超级幸运星</h2>
+          </div>
+          
+          <!-- 彩票卡片 -->
+          <div class="bg-white rounded-xl lottery-shadow p-6 flex-grow flex flex-col">
+            <!-- 彩票内容 -->
+            <div class="flex-grow flex flex-col items-center justify-center mb-6">
+              <p class="text-gray-700 mb-4 text-center">刮开下方涂层，看看您是否中奖！</p>
+              
+              <!-- 刮刮卡区域 -->
+              <div class="scratch-card w-full max-w-xs aspect-[4/3] bg-light rounded-lg overflow-hidden lottery-shadow">
+                <div class="scratch-area w-full h-full" data-lottery-result="恭喜中奖！">
+                  <!-- 覆盖层 -->
+                  <div class="scratch-cover"></div>
+                  <!-- 结果区域 -->
+                  <div class="result-area">
+                    <div class="text-center p-4">
+                      <div class="text-primary text-2xl font-bold mb-2">恭喜中奖！</div>
+                      <div class="text-green-600 text-sm">一等奖：¥100.00</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 刮奖提示 -->
+            <div class="text-center text-gray-500 text-sm">
+              <p>用手指或鼠标刮开涂层</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 彩票2 -->
+      <div class="swiper-slide px-4">
+        <div class="w-full h-full flex flex-col">
+          <div class="text-center mb-4">
+            <h2 class="text-white text-xl font-bold">幸运百分百</h2>
+          </div>
+          
+          <div class="bg-white rounded-xl lottery-shadow p-6 flex-grow flex flex-col">
+            <div class="flex-grow flex flex-col items-center justify-center mb-6">
+              <p class="text-gray-700 mb-4 text-center">刮开下方涂层，看看您是否中奖！</p>
+              
+              <div class="scratch-card w-full max-w-xs aspect-[4/3] bg-light rounded-lg overflow-hidden lottery-shadow">
+                <div class="scratch-area w-full h-full" data-lottery-result="再接再厉">
+                  <div class="scratch-cover"></div>
+                  <div class="result-area">
+                    <div class="text-center p-4">
+                      <div class="text-gray-600 text-2xl font-bold mb-2">再接再厉</div>
+                      <div class="text-gray-500 text-sm">感谢参与，继续加油！</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="text-center text-gray-500 text-sm">
+              <p>用手指或鼠标刮开涂层</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 彩票3 -->
+      <div class="swiper-slide px-4">
+        <div class="w-full h-full flex flex-col">
+          <div class="text-center mb-4">
+            <h2 class="text-white text-xl font-bold">惊喜连连</h2>
+          </div>
+          
+          <div class="bg-white rounded-xl lottery-shadow p-6 flex-grow flex flex-col">
+            <div class="flex-grow flex flex-col items-center justify-center mb-6">
+              <p class="text-gray-700 mb-4 text-center">刮开下方涂层，看看您是否中奖！</p>
+              
+              <div class="scratch-card w-full max-w-xs aspect-[4/3] bg-light rounded-lg overflow-hidden lottery-shadow">
+                <div class="scratch-area w-full h-full" data-lottery-result="恭喜中奖！">
+                  <div class="scratch-cover"></div>
+                  <div class="result-area">
+                    <div class="text-center p-4">
+                      <div class="text-primary text-2xl font-bold mb-2">恭喜中奖！</div>
+                      <div class="text-green-600 text-sm">二等奖：¥50.00</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="text-center text-gray-500 text-sm">
+              <p>用手指或鼠标刮开涂层</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 彩票4-15 这里会动态生成 -->
+    </div>
+  </div>
+  
+  <!-- 滑动指示器 -->
+  <div id="indicators" class="flex justify-center space-x-2 mb-8">
+    <div class="indicator active"></div>
+    <div class="indicator"></div>
+    <div class="indicator"></div>
+    <!-- 更多指示器会动态生成 -->
+  </div>
+  
+  <!-- 操作按钮 -->
+  <div class="flex space-x-4 mb-8">
+    <button id="prev-btn" class="btn-hover-effect bg-white/20 text-white px-6 py-3 rounded-full backdrop-blur-sm">
+      ← 上一张
+    </button>
+    <button id="next-btn" class="btn-hover-effect bg-white/20 text-white px-6 py-3 rounded-full backdrop-blur-sm">
+      下一张 →
+    </button>
+  </div>
+  
+  <!-- 配置按钮已移除，通过config.js进行配置 -->
+  
+  <!-- 二维码遮罩层 -->
+  <div id="qrcode-overlay" class="qrcode-overlay fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-xl p-6 max-w-sm w-full">
+      <div class="text-center mb-4">
+        <h3 class="text-2xl font-bold text-primary">恭喜中奖！</h3>
+        <p class="text-gray-600 mt-2">请扫描下方二维码领取红包</p>
+      </div>
+      
+      <!-- 微信红包二维码占位 -->
+      <div class="flex justify-center mb-4">
+        <img id="red-packet-qrcode" src="" alt="微信红包二维码" class="w-48 h-48 border border-gray-200 p-2" />
+      </div>
+      
+      <button id="close-qrcode" class="btn-hover-effect w-full bg-primary text-white py-3 rounded-lg">
+        关闭
+      </button>
+    </div>
+  </div>
+  
+  <!-- 查看二维码按钮 -->
+  <div id="show-qrcode-btn-container" class="fixed bottom-8 left-0 right-0 flex justify-center z-40 hidden">
+    <button id="show-qrcode-btn" class="btn-hover-effect bg-primary text-white px-8 py-3 rounded-full shadow-lg">
+      查看红包二维码
+    </button>
+  </div>
+  
+  <!-- JavaScript -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 从config.js获取配置，ticketConfig已在config.js中定义
+      
+      // DOM元素
+      const swiperWrapper = document.querySelector('.swiper-wrapper');
+      const indicators = document.getElementById('indicators');
+      const prevBtn = document.getElementById('prev-btn');
+      const nextBtn = document.getElementById('next-btn');
+      const qrcodeOverlay = document.getElementById('qrcode-overlay');
+      const closeQrcode = document.getElementById('close-qrcode');
+      const redPacketQrcode = document.getElementById('red-packet-qrcode');
+      const showQrcodeBtn = document.getElementById('show-qrcode-btn');
+      const showQrcodeBtnContainer = document.getElementById('show-qrcode-btn-container');
+      
+      // 当前刮开的彩票二维码信息
+      let currentQrCodeUrl = '';
+      
+      // 滑动相关变量
+      let currentIndex = 0;
+      let startX, moveX;
+      let isDragging = false;
+      
+      // 初始化生成彩票（从配置文件读取）
+      function initializeTickets() {
+        // 清空现有内容
+        swiperWrapper.innerHTML = '';
+        
+        // 根据配置文件创建彩票
+        ticketConfig.forEach((ticket, index) => {
+          const newSlide = document.createElement('div');
+          newSlide.className = 'swiper-slide px-4';
+          
+          newSlide.innerHTML = `
+            <div class="w-full h-full flex flex-col">
+              <!-- 彩票标题 -->
+              <div class="text-center mb-4">
+                <h2 class="text-white text-xl font-bold">${ticket.title}</h2>
+                ${ticket.subtitle ? `<p class="text-white/80 text-sm">${ticket.subtitle}</p>` : ''}
+              </div>
+              
+              <!-- 彩票卡片 -->
+              <div class="bg-white rounded-xl lottery-shadow p-6 flex-grow flex flex-col">
+                <!-- 彩票内容 -->
+                <div class="flex-grow flex flex-col items-center justify-center mb-6">
+                  <p class="text-gray-700 mb-4 text-center">刮开下方涂层，看看您是否中奖！</p>
+                  
+                  <!-- 刮刮卡区域 -->
+                  <div class="scratch-card w-full max-w-xs aspect-[4/3] bg-light rounded-lg overflow-hidden lottery-shadow">
+                    <div class="scratch-area w-full h-full" 
+                         data-lottery-result="${ticket.prize}"
+                         data-has-qrcode="${ticket.hasQRCode}"
+                         data-qrcode-url="${ticket.qrCodeUrl}">
+                      <!-- 覆盖层 -->
+                      <div class="scratch-cover"></div>
+                      <!-- 结果区域 -->
+                      <div class="result-area">
+                        <div class="text-center p-4">
+                          <div class="${ticket.hasQRCode ? 'text-primary' : 'text-gray-600'} text-2xl font-bold mb-2">${ticket.prize}</div>
+                          ${ticket.footer ? `<div class="text-gray-500 text-sm">${ticket.footer}</div>` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- 刮奖提示 -->
+                <div class="text-center text-gray-500 text-sm">
+                  <p>用手指或鼠标刮开涂层</p>
+                </div>
+              </div>
+            </div>
+          `;
+          
+          swiperWrapper.appendChild(newSlide);
+        });
+        
+        // 更新指示器
+        updateIndicators();
+        
+        // 重新初始化刮刮卡功能
+        initScratchCards();
+        
+        // 重置滑动位置
+        goToSlide(0);
+      }
+      
+      // 更新指示器
+      function updateIndicators() {
+        indicators.innerHTML = '';
+        for (let i = 0; i < ticketConfig.length; i++) {
+          const indicator = document.createElement('div');
+          indicator.className = `indicator ${i === currentIndex ? 'active' : ''}`;
+          indicator.addEventListener('click', () => goToSlide(i));
+          indicators.appendChild(indicator);
+        }
+      }
+      
+      // 滑动到指定位置（实现循环切换）
+      function goToSlide(index) {
+        // 实现循环切换逻辑
+        if (index < 0) {
+          currentIndex = ticketConfig.length - 1; // 第一页向前滑动到最后一页
+        } else if (index >= ticketConfig.length) {
+          currentIndex = 0; // 最后一页向后滑动到第一页
+        } else {
+          currentIndex = index;
+        }
+        
+        const translateValue = -currentIndex * 100;
+        swiperWrapper.style.transform = `translateX(${translateValue}%)`;
+        
+        // 更新指示器状态
+        const indicatorElements = indicators.querySelectorAll('.indicator');
+        indicatorElements.forEach((indicator, i) => {
+          if (i === currentIndex) {
+            indicator.classList.add('active');
+          } else {
+            indicator.classList.remove('active');
+          }
+        });
+        
+        // 隐藏查看二维码按钮
+        showQrcodeBtnContainer.classList.add('hidden');
+      }
+      
+      // 初始化刮刮卡功能
+      function initScratchCards() {
+        const scratchAreas = document.querySelectorAll('.scratch-area');
+        
+        scratchAreas.forEach(scratchArea => {
+          const scratchCover = scratchArea.querySelector('.scratch-cover');
+          let isScratched = false;
+          
+          // 设置canvas覆盖层
+          const canvas = document.createElement('canvas');
+          canvas.width = scratchArea.offsetWidth;
+          canvas.height = scratchArea.offsetHeight;
+          canvas.className = 'absolute top-0 left-0 w-full h-full';
+          scratchArea.appendChild(canvas);
+          
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#d1d5db';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.globalCompositeOperation = 'destination-out';
+          
+          // 调整canvas大小
+          function resizeCanvas() {
+            canvas.width = scratchArea.offsetWidth;
+            canvas.height = scratchArea.offsetHeight;
+            
+            // 重新绘制覆盖层
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#d1d5db';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalCompositeOperation = 'destination-out';
+          }
+          
+          // 监听窗口大小变化
+          window.addEventListener('resize', resizeCanvas);
+          resizeCanvas();
+          
+          // 绘制刮擦效果
+          function draw(x, y) {
+            const radius = 20;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 检查刮开面积
+            checkScratchProgress();
+          }
+          
+          // 检查刮开进度
+          function checkScratchProgress() {
+            if (isScratched) return;
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+            let transparentPixels = 0;
+            
+            for (let i = 3; i < pixels.length; i += 4) {
+              if (pixels[i] === 0) {
+                transparentPixels++;
+              }
+            }
+            
+            const scratchPercentage = (transparentPixels / (pixels.length / 4)) * 100;
+            
+            // 如果刮开超过50%，显示完整结果
+            if (scratchPercentage > 50) {
+              revealResult();
+            }
+          }
+          
+          // 显示结果
+          function revealResult() {
+            isScratched = true;
+            canvas.style.opacity = '0';
+            scratchCover.style.opacity = '0';
+            
+            // 检查是否有二维码
+            const hasQRCode = scratchArea.dataset.hasQrcode === 'true';
+            if (hasQRCode) {
+              // 保存当前二维码URL
+              currentQrCodeUrl = scratchArea.dataset.qrcodeUrl;
+              // 显示查看二维码按钮
+              setTimeout(() => {
+                showQrcodeBtnContainer.classList.remove('hidden');
+              }, 500);
+            }
+          }
+          
+          // 鼠标事件
+          canvas.addEventListener('mousedown', startDrawing);
+          canvas.addEventListener('mousemove', drawOnMove);
+          canvas.addEventListener('mouseup', stopDrawing);
+          canvas.addEventListener('mouseleave', stopDrawing);
+          
+          // 触摸事件
+          canvas.addEventListener('touchstart', startDrawing);
+          canvas.addEventListener('touchmove', drawOnMove);
+          canvas.addEventListener('touchend', stopDrawing);
+          
+          let isDrawing = false;
+          
+          function startDrawing(e) {
+            isDrawing = true;
+            const pos = getPosition(e);
+            draw(pos.x, pos.y);
+          }
+          
+          function drawOnMove(e) {
+            if (!isDrawing) return;
+            e.preventDefault(); // 防止页面滚动
+            const pos = getPosition(e);
+            draw(pos.x, pos.y);
+          }
+          
+          function stopDrawing() {
+            isDrawing = false;
+          }
+          
+          function getPosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            let x, y;
+            
+            if (e.type.includes('mouse')) {
+              x = e.clientX - rect.left;
+              y = e.clientY - rect.top;
+            } else {
+              x = e.touches[0].clientX - rect.left;
+              y = e.touches[0].clientY - rect.top;
+            }
+            
+            return { x, y };
+          }
+        });
+      }
+      
+      // 显示二维码
+      function showQRCode() {
+        redPacketQrcode.src = currentQrCodeUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=WeChatRedPacket';
+        qrcodeOverlay.classList.add('show');
+      }
+      
+      // 滑动控制
+      function setupSwipeControl() {
+        const swiperContainer = document.querySelector('.swiper-container');
+        
+        // 触摸事件
+        swiperContainer.addEventListener('touchstart', (e) => {
+          startX = e.touches[0].clientX;
+          isDragging = true;
+        });
+        
+        swiperContainer.addEventListener('touchmove', (e) => {
+          if (!isDragging) return;
+          moveX = e.touches[0].clientX;
+        });
+        
+        swiperContainer.addEventListener('touchend', () => {
+          if (!isDragging) return;
+          
+          const diff = startX - moveX;
+          if (Math.abs(diff) > 50) {
+            // 向左滑动
+            if (diff > 0) {
+              goToSlide(currentIndex + 1);
+            }
+            // 向右滑动
+            else {
+              goToSlide(currentIndex - 1);
+            }
+          }
+          
+          isDragging = false;
+        });
+      }
+      
+      // 配置表单处理
+      function setupConfigForm() {
+        // 填充表单默认值
+        document.getElementById('win-text').value = config.winText;
+        document.getElementById('prize-amount').value = config.prizeAmount;
+        document.getElementById('lose-text').value = config.loseText;
+        document.getElementById('qrcode-url').value = config.qrcodeUrl;
+        document.getElementById('win-probability').value = config.winProbability;
+        document.getElementById('probability-value').textContent = `${config.winProbability}%`;
+        
+        // 概率滑块更新
+        document.getElementById('win-probability').addEventListener('input', (e) => {
+          document.getElementById('probability-value').textContent = `${e.target.value}%`;
+        });
+        
+        // 表单提交
+        configForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          
+          // 更新配置
+          config.winText = document.getElementById('win-text').value;
+          config.prizeAmount = document.getElementById('prize-amount').value;
+          config.loseText = document.getElementById('lose-text').value;
+          config.qrcodeUrl = document.getElementById('qrcode-url').value;
+          config.winProbability = parseInt(document.getElementById('win-probability').value);
+          
+          // 重新初始化彩票
+          initializeTickets();
+          
+          // 关闭弹窗
+          configModal.classList.remove('show');
+        });
+      }
+      
+      // 事件监听
+      function setupEventListeners() {
+        // 按钮点击事件
+        prevBtn.addEventListener('click', () => goToSlide(currentIndex - 1));
+        nextBtn.addEventListener('click', () => goToSlide(currentIndex + 1));
+        
+        // 查看二维码按钮
+        showQrcodeBtn.addEventListener('click', () => {
+          showQRCode();
+          showQrcodeBtnContainer.classList.add('hidden');
+        });
+        
+        // 二维码关闭
+        closeQrcode.addEventListener('click', () => {
+          qrcodeOverlay.classList.remove('show');
+        });
+        
+        // 点击遮罩层关闭二维码
+        qrcodeOverlay.addEventListener('click', (e) => {
+          if (e.target === qrcodeOverlay) {
+            qrcodeOverlay.classList.remove('show');
+          }
+        });
+      }
+      
+      // 初始化应用
+      function initializeApp() {
+        setupSwipeControl();
+        setupEventListeners();
+        initializeTickets();
+      }
+      
+      // 启动应用
+      initializeApp();
+    });
+  </script>
+</body>
+</html>
